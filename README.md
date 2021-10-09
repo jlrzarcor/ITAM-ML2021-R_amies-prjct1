@@ -16,7 +16,7 @@ _InClass Prediction Competition_
 | Nombre                          |     CU   | Mail                    | Usuario Gh                                    |
 | :-----------------------------: | :------: | :---------------------: | :-------------------------------------------: |
 | Nayeli Arenas Morales           | 000000   | nayeli.arenas@itam.mx   | [arenitss](https://github.com/arenitss) |
-| Uriel Abraham Rangel Díaz       | 000000   | urangeld@itam.mx        | [urieluard](https://github.com/urieluard)     |
+| Uriel Abraham Rangel Díaz       | 193921   | urangeld@itam.mx        | [urieluard](https://github.com/urieluard)     |
 | José Luis Roberto Zárate Cortés | 183347   | jzaratec@itam.mx        | [jlrzarcor](https://github.com/jlrzarcor)     |
 
 ---
