@@ -1,3 +1,7 @@
+# Data
+data/
+Cancelaciones_en_Hoteles/hotel_cr_train.Rds
+
 # History files
 .Rhistory
 .Rapp.history
