@@ -1,0 +1,298 @@
+---
+title: "EDA. Kaggle, Cancelaciones en Hoteles"
+author: "A_NAYELLI , R_URIEL ABRAHAM, ZC_JOSE LUIS R. 183347"
+date: "5/10/2021"
+output: html_document
+---
+### ITAM, Maestría en Ciencia de Datos
+**Profesor: Felipe González
+
+```{r setup}
+
+knitr::opts_chunk$set(echo = FALSE)
+
+
+## ID_F0 --> This function aim to install and load libraries required.
+    rm(list = ls())
+    instalar <- function(paquete) {
+      if (!require(paquete,character.only = TRUE, quietly = TRUE,
+                   warn.conflicts = FALSE)) {
+        install.packages(as.character(paquete), dependecies = TRUE,
+                         repos = "http://cran.us.r-project.org")
+        library(paquete, character.only = TRUE, quietly = TRUE,
+                warn.conflicts = FALSE)
+      }
+    }
+    
+## Defining required libraries to install and load:
+## Use this vector to indicate libraries to load.
+paquetes <- c('readr', 'tidyr', 'tibble', 'dplyr', 'magrittr', 'lubridate',
+              'stringr','ggplot2', 'forcats', "gridExtra", 'ggthemes',
+              'GGally','mice','VIM')
+
+lapply(paquetes, instalar)
+
+## Load piping files and review of working libraries
+source("../src/etl/metadata.R"  , encoding = 'UTF-8')
+source("../src/utils/utils.R"     , encoding = 'UTF-8')
+source("../src/etl/00-load.R"   , encoding = 'UTF-8')
+source("../src/etl/01-prepare.R", encoding = 'UTF-8')
+source("../src/etl/02-clean.R",   encoding = 'UTF-8')
+source("../src/etl/03-eda.R",   encoding = 'UTF-8')
+#source("../src/etl/ggbiplot.R",   encoding = 'UTF-8')
+
+```
+
+## INTRODUCCIÓN
+____________
+
+* **_Objetivo Examen_**: **EDA.**  
+* **_Objetivo Final_**: Predicción de cancelación de reservas en hoteles para el grupo COM-33701-001 de Aprendizaje de Máquina.
+
+Con el fin de planear tarifas y actividades de ventas o promoción, los hoteles hacen estimaciones adelantadas de su ocupación en cada día. Una parte de estas estimaciones requiere predecir cuántas de las reservaciones que ya se tienen van a terminar en cancelaciones, lo cual libera inventario que afecta en la planeación.
+
+Usaremos varias características de las reservaciones para intentar predecir cuáles de ellas es probable que terminen o no en cancelación.
+* **_Variable Objetivo_**: "is_canceled"  
+info.  
+
+**Los macroprocesos ejecutados fueron:**  
+  1. Ejecución de "piping" de limpieza y estructura de la información.  
+  2. Anáisis de la "salud de los datos".  
+  3. EDA: univariado, bivariado y multivariado.  
+  4. Presentación de resultados sobre las variables que deberán considerarse
+     en el modelado.
+      
+____________
+
+### Healthy Data. Cleaning Process.  
+> En la primera etapa de limpieza (02clean.R) se realizaron los siguientes
+procesos:  
+* Los símbolos 'NULL' se convierten a NA.  
+* Se convierte a "low_caps" las columnas y se sustituyen signos o símbolos
+por "under_scores".  
+* Variables "character" --> "Factor:.  
+* Variables "character" --> "Factor:.  
+
+Revisemos que el proceso de limpieza se haya ejecutado adecuadamente y que las
+variables estén correctamente clasificadas en numéricas y factores:  
+
+```{r}
+glimpse(hotel_cr_train)
+```
+
+Se puede apreciar que los _missing values_ "NULL" fueron convertidos adecuadamente.
+De acuerdo con la "metadata" de las variables en el _overview_ de "Kaggle, podemos determinar las variables que serán convertidas a "factor"
+
+```{r}
+colnames(hotel_cr_train)
+```
+
+```{r}
+
+# Categorical variables to transform to factor binary variables (1,0) or sorter categories:
+# "babies" [11], "stays_in_weekend_nights" [8], "stays_in_week_nights" [9]
+
+hotel_cr_train <- hotel_cr_train %>% 
+  mutate(babies = ifelse(babies > 0, 1, 0))
+
+hotel_cr_train <- hotel_cr_train %>% 
+  mutate(adults = ifelse(adults > 3, ">3", as.character(adults)))
+
+hotel_cr_train <- hotel_cr_train %>% 
+  mutate(children = ifelse(children > 2, ">2", as.character(children)))
+
+hotel_cr_train <- hotel_cr_train %>% 
+  mutate(stays_in_weekend_nights = ifelse(stays_in_weekend_nights > 2, ">2",
+                                          as.character(stays_in_weekend_nights)))
+
+hotel_cr_train <- hotel_cr_train %>% 
+  mutate(stays_in_week_nights = ifelse(stays_in_week_nights > 6, ">6",
+                                          as.character(stays_in_week_nights)))
+hotel_cr_train <- hotel_cr_train %>% 
+  mutate(babies = ifelse(babies > 0, 1, 0))
+
+hotel_cr_train <- hotel_cr_train %>% 
+  mutate(previous_cancellations = ifelse(previous_cancellations > 0, 1, 0))
+
+hotel_cr_train <- hotel_cr_train %>% 
+  mutate(previous_bookings_not_canceled = ifelse(previous_bookings_not_canceled > 0, 1, 0))
+
+hotel_cr_train <- hotel_cr_train %>% 
+  mutate(booking_changes = ifelse(booking_changes > 2, ">2",
+                                          as.character(booking_changes)))
+hotel_cr_train <- hotel_cr_train %>% 
+  mutate(days_in_waiting_list = ifelse(days_in_waiting_list > 0, 1, 0))
+
+hotel_cr_train <- hotel_cr_train %>% 
+  mutate(required_car_parking_spaces = ifelse(required_car_parking_spaces > 0, 1, 0))
+
+hotel_cr_train <- hotel_cr_train %>% 
+  mutate(total_of_special_requests = ifelse(total_of_special_requests > 0, 1, 0))
+
+
+
+# *******   Transform variables to factors   *******
+hotel_cr_train  <- hotel_cr_train %>% 
+  mutate_at(c(1:2, 5:25, 27, 29:30),list(as.factor))
+
+
+# *******   Transform variables to integers   *******
+hotel_cr_train  <- hotel_cr_train %>% 
+  mutate_at(c(3),list(as.integer))
+
+# *******   Variables to remove: year    *******
+hotel_cr_train <- hotel_cr_train %>% select(-4)
+
+
+glimpse(hotel_cr_train)
+```
+
+Lo siguiente es analizar cómo están nuestras datos:  
+
+```{r}
+
+saveRDS(hotel_cr_train, "../Cancelaciones_en_Hoteles/hotel_cr_train.Rds")
+summary(hotel_cr_train)
+
+#hist(hotel_cr_train %>% filter(children != 0) %>% pull(children))
+
+#table(hotel_cr_train$days_in_waiting_list)
+ #previous_bookings_not_canceled
+
+```
+
+**Valores Faltantes**  
+  * Variables Categóricas:  
+      
+  * Variables Numéricas:  
+      
+**Valores Invalidos**  
+
+**Resumen 5 números variables numéricas**   
+
+Observemos que no se se presentan incongruencias entre variables y registros:  
+
+```{r}
+problems(hotel_cr_train)
+```
+
+AHora observemos como se distribuyen y relacionan los missing values:
+
+```{r}
+library(mice)
+library(VIM)
+aggr(hotel_cr_train, prop=FALSE, numbers=TRUE)
+matrixplot(hotel_cr_train)
+```
+
+Es posible observar en los gráficos anteriores, que el grado de influencia de
+los "missing values" aparentemente (salvo lo ya mencionado para la variable
+normalized_losses) no tienen un nivel de interrelación importante, por lo que
+podemos proseguir con el EDA y psoteriormente podríamos imputarlos.  
+
+Observemos nuestros datos hasta este momento:  
+
+```{r}
+hotel_cr_train
+```
+
+
+## EDA UNIVARIADO
+
+Ahora analizaremos gráficamente diversas características de nuestras varaibles, 
+tales como medidas de tendencia central, normalidad, outliers, rango de
+variación, etc.
+
+Se llevará a cabo por etapas de la siguiente forma:
+  1. Se expondrán de forma global los barplots de todas las variables
+  categóricas seguido de los histogramas y finalmente boxplots de las var.
+  numéricas.  
+  
+  2. Se analizarán de forma independiente las variables categóricas,
+  observando la posible influencia del tamaños de variación en sus categorías
+  en la explicación de la variable target "price".  
+  
+  3. Se analizaran los histogramas de las variables numéricas para determinar
+  amplitud del rango y posibles outliers, forma, centralidad y picos,
+  normalidad haciendo un acercamiento a los datos con boxplots. Este
+  análisis se llevará en grupos de 3 variables de forma simultánea.  
+  
+Para tal efecto, utilizarmos dos herramientas:
+1. DF con los nombres de las variables y su tipo, el cual servirá como guía
+para integrar el nombre de las variables en formato vector c() en la función
+que genera las gráficas.
+
+2. Función generadora de gráficas:
+
+**a_univariate(df = ,c(''), numvar_hist_box = 'hist', num_bin_his = 60)**
+
+  Parámetros:  
+  df: dataframe a graficar. Default autos85_data
+  c(''): vector con los nombres de las variables en formato texto. Default 'all'
+  numvar_hist_box: permite seleccionar entre histogramas 'hist' o boxplots 'box'
+  num_bin_his: número de buckets a construir para el histograma.
+
+```{r}
+hotel_cr_train_coltype <- hotel_cr_train_get_coltypes(glimpse(hotel_cr_train))
+hotel_cr_train_coltype
+```
+
+
+
+**Categóricas**
+c('hotel', 'is_canceled', 'arrival_date_year', 'arrival_date_month', 'arrival_date_week_number', 'arrival_date_day_of_month', 'stays_in_weekend_nights','stays_in_week_nights', 'adults', 'children', 'babies', 'meal', 'country', 'market_segment', 'distribution_channel', 'is_repeated_guest', 'previous_cancellations', 'previous_bookings_not_canceled', 'reserved_room_type', 'assigned_room_type', 'booking_changes', 'deposit_type', 'agent', 'company', 'customer_type', 'required_car_parking_spaces', 'total_of_special_requests')
+
+**Numéricas**
+c('lead_time', 'days_in_waiting_list', 'adr')
+
+
+**Plots de todas las Variables Categóricas:**
+```{r}
+a_univariate(df = hotel_cr_train,
+             c('hotel', 'is_canceled', 'arrival_date_year', 'arrival_date_month',
+               'arrival_date_week_number', 'arrival_date_day_of_month',
+               'stays_in_weekend_nights','stays_in_week_nights', 'adults', 'children',
+               'babies'),
+             numvar_hist_box = 'hist', num_bin_his = 37)
+```
+
+```{r}
+a_univariate(df = hotel_cr_train,
+             c('meal', 'country', 'market_segment', 'distribution_channel',
+               'is_repeated_guest', 'previous_cancellations',
+               'previous_bookings_not_canceled', 'reserved_room_type',
+               'assigned_room_type', 'booking_changes'),
+             numvar_hist_box = 'hist', num_bin_his = 37)
+```
+
+```{r}
+
+a_univariate(df = hotel_cr_train,
+             c('deposit_type', 'agent', 'company',
+               'customer_type', 'required_car_parking_spaces',
+               'total_of_special_requests'),
+             numvar_hist_box = 'hist', num_bin_his = 37)
+
+
+```
+
+
+
+**Categóricas**
+  
+**Plots de todas las Variables Numéricas:**
+```{r}
+a_univariate(df = hotel_cr_train,
+             c('lead_time', 'days_in_waiting_list', 'adr'),
+             numvar_hist_box = 'hist', num_bin_his = 37)
+```
+
+**Numéricas**
+  
+
+```{r}
+a_univariate(df = hotel_cr_train,
+             c('lead_time', 'days_in_waiting_list', 'adr'),
+             numvar_hist_box = 'box', num_bin_his = 37)
+```
+
