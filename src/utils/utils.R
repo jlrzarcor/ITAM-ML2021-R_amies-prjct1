@@ -1,5 +1,5 @@
 library(readr)
-## JZC: ID_F1 --> This function aim to load data if It doesn´t exist
+## ID_F1 --> This function aim to load data if It doesn´t exist
 load_tr <- function(){
   hotel_cr_train <- read_csv('../data/entrena.csv', na = 'XXXXXXX')
   #saveRDS(hotel_cr_train, "../data/hotel_cr_train")
@@ -12,7 +12,7 @@ load_ts <- function(){
 }
 
 
-## JZC: ID_F2 --> This functions aims to clean data
+## ID_F2 --> This functions aims to clean data
 
 #autos85_clean_colnames <- function(x){
 #  str_replace_all(tolower(x),"/| ",'_')
@@ -26,14 +26,14 @@ clean_data <- function(x){
 
 
 
-# JZC: ID_F3 --> NOMBRES DE VARIABLES LIMPIOS Y EN MINÚSCULAS
+# ID_F3 --> NOMBRES DE VARIABLES LIMPIOS Y EN MINÚSCULAS
 # Es un vector con los nombres de las columnas, se utiliza en varias funciones
 
 #autos85_colnames_min <- autos85_clean_colnames(autos85_colnames)
 
 
 
-# JZC: ID_F4 --> DATAFRAME WITH VARIABLE NAMES AND TYPE OF VARIABLE
+# ID_F4 --> DATAFRAME WITH VARIABLE NAMES AND TYPE OF VARIABLE
 # Useful to discriminate type of graphing construction
 
 hotel_cr_train_get_coltypes <- function(hotel_cr_train) {
@@ -99,3 +99,43 @@ graf_bi_splom <- function(data){
 }
 
 
+
+
+##********************* CLEANING: IMPUTATION *********************##
+
+moda <- function(x) {
+  # Función para obetener la moda de variable categorica
+  # Inputs:
+  # x: columna de donde se quiere extraer la moda
+  #
+  # Outputs
+  # Moda de columna, es decir el valor que más se repite
+  z <- table(as.vector(x))
+  names(z)[z == max(z)]
+}
+
+imputar_valor_central <- function(data, colnames) {
+  
+  # Función para imputar valores centrales, media en numéricos y moda en categoricos
+  # Inputs:
+  # data - El tibble de algas
+  # colnames - El array de las columnas que se desea imputar
+  #
+  # Outputs
+  # dataframe con imputaciones centrales
+  #Dividir entre numericas y categoricas
+  
+  data_columnas <- data[colnames]
+  var_numericas <- dplyr::select_if(data_columnas, is.numeric) %>% names()
+  var_categoricas <- dplyr::select_if(data_columnas, is.character) %>% colnames()
+  
+  #Imputar
+  algas_data_imputacion_central <- data %>%
+    # variables numéricas (media)
+    mutate_at( vars(var_numericas),
+               funs(ifelse(is.na(.), median(., na.rm = T), .))) %>%
+    # variables categóricas (moda)
+    mutate_at(vars(var_categoricas),
+              funs(as.ordered(ifelse(is.na(.), moda(.), as.character(.)))))
+  return(algas_data_imputacion_central)
+}

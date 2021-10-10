@@ -87,27 +87,17 @@ De acuerdo con la "metadata" de las variables en el _overview_ de "Kaggle, podem
 colnames(hotel_cr_train)
 ```
 
+## Limpieza y transformación de variables:
+
+Elaboramos un análisis univariado con este notebook y bivariado con la App de Shinny para realizar la transformación de variables categóricas con ciertas propiedades observadas que consideramos son las más represtentativas para posteriormente volvimos a graficar. Estos son las principales modificaciones:
+
+### Cleaning Train
+
 ```{r}
 
-# Categorical variables to transform to factor binary variables (1,0) or sorter categories:
+# Variables categóricas que serán transformadas a binarias (1,0)  bajo la presencia o ausencia del atributo:
 # "babies" [11], "stays_in_weekend_nights" [8], "stays_in_week_nights" [9]
 
-hotel_cr_train <- hotel_cr_train %>% 
-  mutate(babies = ifelse(babies > 0, 1, 0))
-
-hotel_cr_train <- hotel_cr_train %>% 
-  mutate(adults = ifelse(adults > 3, ">3", as.character(adults)))
-
-hotel_cr_train <- hotel_cr_train %>% 
-  mutate(children = ifelse(children > 2, ">2", as.character(children)))
-
-hotel_cr_train <- hotel_cr_train %>% 
-  mutate(stays_in_weekend_nights = ifelse(stays_in_weekend_nights > 2, ">2",
-                                          as.character(stays_in_weekend_nights)))
-
-hotel_cr_train <- hotel_cr_train %>% 
-  mutate(stays_in_week_nights = ifelse(stays_in_week_nights > 6, ">6",
-                                          as.character(stays_in_week_nights)))
 hotel_cr_train <- hotel_cr_train %>% 
   mutate(babies = ifelse(babies > 0, 1, 0))
 
@@ -118,9 +108,6 @@ hotel_cr_train <- hotel_cr_train %>%
   mutate(previous_bookings_not_canceled = ifelse(previous_bookings_not_canceled > 0, 1, 0))
 
 hotel_cr_train <- hotel_cr_train %>% 
-  mutate(booking_changes = ifelse(booking_changes > 2, ">2",
-                                          as.character(booking_changes)))
-hotel_cr_train <- hotel_cr_train %>% 
   mutate(days_in_waiting_list = ifelse(days_in_waiting_list > 0, 1, 0))
 
 hotel_cr_train <- hotel_cr_train %>% 
@@ -129,23 +116,241 @@ hotel_cr_train <- hotel_cr_train %>%
 hotel_cr_train <- hotel_cr_train %>% 
   mutate(total_of_special_requests = ifelse(total_of_special_requests > 0, 1, 0))
 
+# [25] company tiene más del 90% de NA, por lo que se acuerda en transfromarla en company cuando se tenga un ID y no_company cuando se tiene NA.
 
+hotel_cr_train <- hotel_cr_train %>% 
+  mutate(company = ifelse(is.na(company) == TRUE, 1, 0))
+
+
+# For sorter categories:
+
+
+hotel_cr_train <- hotel_cr_train %>% 
+  mutate(adults = ifelse(adults > 3, ">3", as.character(adults)))
+
+hotel_cr_train <- hotel_cr_train %>%
+  mutate(children = ifelse(is.na(children) == TRUE, 0, children)) %>%
+  mutate(children = ifelse(children > 2, ">2", as.character(children)))
+
+#is.na(hotel_cr_train$children)[c(31872,31939,31951,32432)]
+#is.na(hotel_cr_train %>%
+#  mutate(children = ifelse(is.na(children) == TRUE, 0, children)) %>%
+#  mutate(children = ifelse(children > 2, ">2", as.character(children))))[c(31872,31939,31951,32432)]
+
+
+hotel_cr_train <- hotel_cr_train %>% 
+  mutate(stays_in_weekend_nights = ifelse(stays_in_weekend_nights > 2, ">2",
+                                          as.character(stays_in_weekend_nights)))
+
+hotel_cr_train <- hotel_cr_train %>% 
+  mutate(stays_in_week_nights = ifelse(stays_in_week_nights > 6, ">6",
+                                          as.character(stays_in_week_nights)))
+
+hotel_cr_train <- hotel_cr_train %>% 
+  mutate(booking_changes = ifelse(booking_changes > 2, ">2",
+                                          as.character(booking_changes)))
+
+
+# [24] "agent": observamos que esta variable concentra sus datos en aprox. 3-5 Agentes, los cuáles, en comparación con la variable respuesta _is canceled_ se tiene una distribución equilibrada en ambas categorías (cancelado/no_cancelado) por lo que creemos que existe otra variable que determina la cancelación o no con alguno de estos 3 agentes de mayor importancia. Se crean una categoría por agente (3), una para otros agentes (inf) y finalmente hemos considerado que NA es una contratación sin agente ('no_agente')
+
+hotel_cr_train <- hotel_cr_train %>% 
+  mutate( agent = ifelse(is.na(agent) == TRUE, "no_agent",
+                         agent)) %>%
+  mutate( agent = ifelse(!(agent %in% c(37,8,241,3,28, 250,14,6 ,7,1,240,9)),
+                         "other_agent", as.character(agent)))
+
+
+#[14] "country": se detectaron 468 NA que se van a imputar por kvmc. Por otro lado, de igual forma que en _Agent_, nos percatamos de que esta variable concentra más del 90% de las observaciones en 13-15 países, por lo que se decide categorizar con estas estiquetas y el resto con _other_countries_.
+
+
+######### Integrar imputación de Country
+
+hotel_cr_train <- hotel_cr_train %>% 
+  mutate( country = ifelse(!(country %in% c('CHE','USA','BEL','NLD','BRA','IRL','ITA',
+                                            'DEU','ESP','FRA','GBR','PRT')),
+                         "other_countries", as.character(country)))
+
+# [7] [6] "arrival_date_week_number"; "arrival_date_day_of_month": los valores posibles de ambas categorías deben fluctuar en 1:53 y 1:31 respectivamente, por lo que en caso de NA o un valor fuera de rango se enviaran a un valor central
+
+hotel_cr_train <- hotel_cr_train %>% 
+  mutate(arrival_date_week_number = ifelse(is.na(arrival_date_week_number) == TRUE, 1,
+                                           arrival_date_week_number)) %>%
+  mutate(arrival_date_week_number = ifelse(!(arrival_date_week_number %in% c(1:53)), "1",
+                                            as.character(arrival_date_week_number)))
+
+hotel_cr_train <- hotel_cr_train %>% 
+  mutate(arrival_date_day_of_month = ifelse(is.na(arrival_date_day_of_month) == TRUE, 1,
+                                           arrival_date_day_of_month)) %>%
+  mutate(arrival_date_day_of_month = ifelse(!(arrival_date_day_of_month %in% c(1:31)),"1",
+                                             as.character(arrival_date_day_of_month)
+                                             ))
+
+
+```
+
+**Imputaciones**
+```{r}
+
+class(hotel_cr_train)
+col_valor_central <- c("country")
+#imputacion por valor central
+hotel_cr_train <- imputar_valor_central(hotel_cr_train, col_valor_central)
+class(hotel_cr_train)
+
+```
+**Transformaciones**
+
+```{r}
 
 # *******   Transform variables to factors   *******
 hotel_cr_train  <- hotel_cr_train %>% 
   mutate_at(c(1:2, 5:25, 27, 29:30),list(as.factor))
 
-
 # *******   Transform variables to integers   *******
 hotel_cr_train  <- hotel_cr_train %>% 
-  mutate_at(c(3),list(as.integer))
+  mutate_at(c(3),list(as.numeric))
+
 
 # *******   Variables to remove: year    *******
+# Se considera irrelevante el año pues los datos de prueba corresponden a 2017 y entrenamiento a 2014-2016
 hotel_cr_train <- hotel_cr_train %>% select(-4)
-
 
 glimpse(hotel_cr_train)
 ```
+
+### $$$$$$$$$$$$$$$$$$$$$$$$ begin
+
+
+
+### Cleaning Train
+
+```{r}
+
+# Variables categóricas que serán transformadas a binarias (1,0)  bajo la presencia o ausencia del atributo:
+# "babies" [11], "stays_in_weekend_nights" [8], "stays_in_week_nights" [9]
+
+hotel_cr_test <- hotel_cr_test %>% 
+  mutate(babies = ifelse(babies > 0, 1, 0))
+
+hotel_cr_test <- hotel_cr_test %>% 
+  mutate(previous_cancellations = ifelse(previous_cancellations > 0, 1, 0))
+
+hotel_cr_test <- hotel_cr_test %>% 
+  mutate(previous_bookings_not_canceled = ifelse(previous_bookings_not_canceled > 0, 1, 0))
+
+hotel_cr_test <- hotel_cr_test %>% 
+  mutate(days_in_waiting_list = ifelse(days_in_waiting_list > 0, 1, 0))
+
+hotel_cr_test <- hotel_cr_test %>% 
+  mutate(required_car_parking_spaces = ifelse(required_car_parking_spaces > 0, 1, 0))
+
+hotel_cr_test <- hotel_cr_test %>% 
+  mutate(total_of_special_requests = ifelse(total_of_special_requests > 0, 1, 0))
+
+# [25] company tiene más del 90% de NA, por lo que se acuerda en transfromarla en company cuando se tenga un ID y no_company cuando se tiene NA.
+
+hotel_cr_test <- hotel_cr_test %>% 
+  mutate(company = ifelse(is.na(company) == TRUE, 1, 0))
+
+
+# For sorter categories:
+
+
+hotel_cr_test <- hotel_cr_test %>% 
+  mutate(adults = ifelse(adults > 3, ">3", as.character(adults)))
+
+hotel_cr_test <- hotel_cr_test %>%
+  mutate(children = ifelse(is.na(children) == TRUE, 0, children)) %>%
+  mutate(children = ifelse(children > 2, ">2", as.character(children)))
+
+#is.na(hotel_cr_test$children)[c(31872,31939,31951,32432)]
+#is.na(hotel_cr_test %>%
+#  mutate(children = ifelse(is.na(children) == TRUE, 0, children)) %>%
+#  mutate(children = ifelse(children > 2, ">2", as.character(children))))[c(31872,31939,31951,32432)]
+
+
+hotel_cr_test <- hotel_cr_test %>% 
+  mutate(stays_in_weekend_nights = ifelse(stays_in_weekend_nights > 2, ">2",
+                                          as.character(stays_in_weekend_nights)))
+
+hotel_cr_test <- hotel_cr_test %>% 
+  mutate(stays_in_week_nights = ifelse(stays_in_week_nights > 6, ">6",
+                                          as.character(stays_in_week_nights)))
+
+hotel_cr_test <- hotel_cr_test %>% 
+  mutate(booking_changes = ifelse(booking_changes > 2, ">2",
+                                          as.character(booking_changes)))
+
+
+# [24] "agent": observamos que esta variable concentra sus datos en aprox. 3-5 Agentes, los cuáles, en comparación con la variable respuesta _is canceled_ se tiene una distribución equilibrada en ambas categorías (cancelado/no_cancelado) por lo que creemos que existe otra variable que determina la cancelación o no con alguno de estos 3 agentes de mayor importancia. Se crean una categoría por agente (3), una para otros agentes (inf) y finalmente hemos considerado que NA es una contratación sin agente ('no_agente')
+
+hotel_cr_test <- hotel_cr_test %>% 
+  mutate( agent = ifelse(is.na(agent) == TRUE, "no_agent",
+                         agent)) %>%
+  mutate( agent = ifelse(!(agent %in% c(37,8,241,3,28, 250,14,6 ,7,1,240,9)),
+                         "other_agent", as.character(agent)))
+
+
+#[14] "country": se detectaron 468 NA que se van a imputar por kvmc. Por otro lado, de igual forma que en _Agent_, nos percatamos de que esta variable concentra más del 90% de las observaciones en 13-15 países, por lo que se decide categorizar con estas estiquetas y el resto con _other_countries_.
+
+
+######### Integrar imputación de Country
+
+hotel_cr_test <- hotel_cr_test %>% 
+  mutate( country = ifelse(!(country %in% c('CHE','USA','BEL','NLD','BRA','IRL','ITA',
+                                            'DEU','ESP','FRA','GBR','PRT')),
+                         "other_countries", as.character(country)))
+
+# [7] [6] "arrival_date_week_number"; "arrival_date_day_of_month": los valores posibles de ambas categorías deben fluctuar en 1:53 y 1:31 respectivamente, por lo que en caso de NA o un valor fuera de rango se enviaran a un valor central
+
+hotel_cr_test <- hotel_cr_test %>% 
+  mutate(arrival_date_week_number = ifelse(is.na(arrival_date_week_number) == TRUE, 1,
+                                           arrival_date_week_number)) %>%
+  mutate(arrival_date_week_number = ifelse(!(arrival_date_week_number %in% c(1:53)), "1",
+                                            as.character(arrival_date_week_number)))
+
+hotel_cr_test <- hotel_cr_test %>% 
+  mutate(arrival_date_day_of_month = ifelse(is.na(arrival_date_day_of_month) == TRUE, 1,
+                                           arrival_date_day_of_month)) %>%
+  mutate(arrival_date_day_of_month = ifelse(!(arrival_date_day_of_month %in% c(1:31)),"1",
+                                             as.character(arrival_date_day_of_month)
+                                             ))
+
+
+```
+
+**Imputaciones**
+```{r}
+
+class(hotel_cr_test)
+col_valor_central <- c("country")
+#imputacion por valor central
+hotel_cr_test <- imputar_valor_central(hotel_cr_test, col_valor_central)
+class(hotel_cr_test)
+
+```
+**Transformaciones**
+
+```{r}
+
+# *******   Transform variables to factors   *******
+hotel_cr_test  <- hotel_cr_test %>% 
+  mutate_at(c(1:2, 5:25, 27, 29:30),list(as.factor))
+
+# *******   Transform variables to integers   *******
+hotel_cr_test  <- hotel_cr_test %>% 
+  mutate_at(c(3),list(as.numeric))
+
+
+# *******   Variables to remove: year    *******
+# Se considera irrelevante el año pues los datos de prueba corresponden a 2017 y entrenamiento a 2014-2016
+hotel_cr_test <- hotel_cr_test %>% select(-4)
+
+glimpse(hotel_cr_test)
+```
+
+
+#### $$$$$$$$$$$$$$$$$$$$$$ end
 
 Lo siguiente es analizar cómo están nuestras datos:  
 
@@ -163,12 +368,36 @@ summary(hotel_cr_train)
 
 **Valores Faltantes**  
   * Variables Categóricas:  
-      
+      -> "num_of_doors" 2NA's. Esta variable está relacionada con "body-style",
+      por lo que se validará si existe correlación y se imputara por similitud.
   * Variables Numéricas:  
+      -> "normalized_losses" 41NA's. Aprox. el 20 % de los valores de esta
+      variable no se tienen. Se buscará imputar, en función otras variables
+      numéricas. Si el EDA muestra que tiene una alta explicación de la
+      variable objetivo y no es posible imputarla, tendrá que realizarse una
+      paritición entre valores y NA's. Caso contrario, deberá descartarse
+      en el modelado.  
+      -> Las variables "bore" 4NA's, "stroke" 4NA's, "horsepower" 2NA's y
+      "peak-rpm" 2NA's correspondientes a 19,20,22,23 respectivamente, podrían
+      estar explicadas en el conjunto de variables 19-23 que describen ciertas
+      características mecánicas del auto, por lo que sería posible imputarlas.  
+      -> La **variable objetivo** (26), **"price"** contiene 4NA's, lo cual es
+      incongruente. Considero que imputar estar variable introduciría un sesgo
+      en el modelo por lo que la recomendación es descartar estos valores.  
       
 **Valores Invalidos**  
-
+  * Se observó que todos los datos están dentro de los rangos indicados en el
+  diccionario de la base de datos y que no existen incongruencias entre el tipo
+  de datos de la variable y los valores contenidos en cada celda (se ejecutó
+  problems a la base limpia arrojando 0 errores). No obstante, esto no
+  descarta que existan Outliers o de amplitud muy marcada.  
+  
 **Resumen 5 números variables numéricas**   
+Se observó que la mayoría de las variables están en una vecindad cercana para
+la media y la mediana, lo que indica que están centradas. En el EDA univariado
+deberá evaluarse esta situación y determinar los efectos de los outliers.  
+Las variables que presentan una lejanía entre media y mediana son horsepower
+y price (target), revisar con detenimiento en el EDA.  
 
 Observemos que no se se presentan incongruencias entre variables y registros:  
 
@@ -279,7 +508,15 @@ a_univariate(df = hotel_cr_train,
 
 
 **Categóricas**
-  
+  Existen 5 variables con 3 categorías o menos, por lo que es conveniente
+  analizarlas de forma conjunta.
+  La variable make presenta el mayor número de categorías una de las cuáles
+  tiene la mayor representación con amplia diferencia.
+  Engine_type es una variable que concentra en una categoría gran parte de los
+  datos.
+  La varibale número de cilindros está dominada por la categoría 4. Es
+  necesario entenderla de forma particular.
+
 **Plots de todas las Variables Numéricas:**
 ```{r}
 a_univariate(df = hotel_cr_train,
@@ -288,7 +525,11 @@ a_univariate(df = hotel_cr_train,
 ```
 
 **Numéricas**
-  
+  La variable price se analizará de forma independiente.
+  Se observan diversas formas en las variables, algunas sesgadas y algunas
+  otras con algun grado de normalidad.
+  Compression_ratio presenta un conjunto de outliers muy marcado que deberá
+  analizarse con boxplot.
 
 ```{r}
 a_univariate(df = hotel_cr_train,
