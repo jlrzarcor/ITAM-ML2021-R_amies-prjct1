@@ -1,0 +1,96 @@
+---
+title: "workflow"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidymodels)
+library(tidyverse)
+library(dplyr)
+library(glmnet)
+```
+
+```{r}
+#hotel_cr_train = read.csv("entrena.csv") %>% mutate(is_canceled = factor(is_canceled),
+#                                                    hotel = factor(hotel),
+#                                                    country = factor(country)) 
+#hotel_cr_test = read.csv("prueba.csv") %>% mutate(hotel = factor(hotel),
+#                                                  country = factor(country))
+
+
+#features <- c("is_canceled","hotel","lead_time","country")
+#hotel_cr_train <- hotel_cr_train[ , (names(hotel_cr_train) %in% features)]
+#hotel_cr_test <- hotel_cr_test[ , (names(hotel_cr_test) %in% features)]
+```
+
+```{r}
+# usamos muestreo estratificado para tener el mismo balance
+# de is_canceled en entrenamiento y prueba
+hotels_split = initial_split(hotel_cr_train, strata = is_canceled, prop = 0.7)
+#hotels_split
+hotels_train <- training(hotels_split)
+```
+
+```{r}
+# preparacion de datos
+hotels_receta <- recipe(is_canceled ~ . , hotels_train) |>
+  step_dummy(all_nominal(), -is_canceled) |>
+  step_relevel(is_canceled,  ref_level = "cancelado", skip = TRUE) 
+hotels_receta_norm <- hotels_receta |> 
+  step_normalize(all_numeric_predictors())
+# modelos
+modelo_logistico <- 
+  logistic_reg(mixture = 1, penalty = 1e-5) |> 
+  set_args(lambda.min_ratio = 1e-18) |> 
+  set_engine("glmnet") |> 
+  set_mode("classification")
+modelo_kvmc <- nearest_neighbor(neighbors = 20) |> 
+  set_mode("classification")
+```
+
+```{r}
+conjunto_wfs <- workflow_set(
+  preproc = list(receta_base = hotels_receta, 
+                 receta_norm = hotels_receta_norm),
+  models = list(reg_logistica = modelo_logistico, k_vecinos = modelo_kvmc),
+  cross = FALSE
+)
+```
+
+```{r}
+val_split <- manual_rset(hotels_split |> list(), "validación")
+mis_metricas <- metric_set(mn_log_loss, accuracy, roc_auc)
+resultados <- conjunto_wfs |> 
+  workflow_map("fit_resamples", resamples = val_split, 
+               metrics = mis_metricas)
+resultados |> select(wflow_id, result) |> 
+  unnest(result) |> unnest(.metrics)
+```
+
+Ahora construimos curvas ROC para comparar los modelos
+
+```{r}
+hotels_test <- testing(hotels_split)
+ajuste_1 <- extract_workflow(resultados, "receta_base_reg_logistica") |> 
+  fit(hotels_train)
+preds_logistica <- predict(ajuste_1, hotel_cr_test, type = "prob")
+
+```
+
+```{r}
+csv = preds_logistica %>% mutate(etiqueta = ifelse(.pred_cancelado > 0.5, 1, 0))
+csv$etiqueta %>% mean()
+```
+
+```{r}
+probs = data.frame(id = seq(1:length(csv$.pred_cancelado)), prob = csv$.pred_cancelado)
+probs[is.na(probs)] <- 0.57654
+names(probs) = c("id","prob")
+write.csv(probs, file="probs.csv",row.names = FALSE)
+```
+
+
