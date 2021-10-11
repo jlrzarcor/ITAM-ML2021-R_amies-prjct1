@@ -14,7 +14,7 @@ load_ts <- function(){
 
 ## ID_F2 --> This functions aims to clean data
 
-#autos85_clean_colnames <- function(x){
+#_clean_colnames <- function(x){
 #  str_replace_all(tolower(x),"/| ",'_')
 #  str_replace_all(tolower(x),"-",'_')
 #}
@@ -29,18 +29,35 @@ clean_data <- function(x){
 # ID_F3 --> NOMBRES DE VARIABLES LIMPIOS Y EN MINÚSCULAS
 # Es un vector con los nombres de las columnas, se utiliza en varias funciones
 
-#autos85_colnames_min <- autos85_clean_colnames(autos85_colnames)
+#<here_dataname>_colnames_min <- <here_data_name>_clean_colnames(<here_data_name>_colnames)
 
 
 
 # ID_F4 --> DATAFRAME WITH VARIABLE NAMES AND TYPE OF VARIABLE
 # Useful to discriminate type of graphing construction
+# data1: Tain data; data2: Test data
 
-hotel_cr_train_get_coltypes <- function(hotel_cr_train) {
-  df_var_type <- as.data.frame(sapply(hotel_cr_train, class))
-  df_var_type <- rownames_to_column(.data = df_var_type, "varname")
-  colnames(df_var_type) <- c('varname','vartype')
-  df_var_type
+get_coltypes <- function(data1 = NULL, data2 = NULL) {
+  
+  rtrn <- list()
+  
+  #data1, train
+  if (is.null(data1) == FALSE){
+  df_var_type1 <- as.data.frame(sapply(data1, class))
+  df_var_type1 <- rownames_to_column(.data = df_var_type1, "varname")
+  colnames(df_var_type1) <- c('varname','vartype')
+  rtrn[[1]] <- df_var_type1
+  }
+  
+  #data2, test
+  if (is.null(data2) == FALSE){
+  df_var_type2 <- as.data.frame(sapply(data2, class))
+  df_var_type2 <- rownames_to_column(.data = df_var_type2, "varname")
+  colnames(df_var_type2) <- c('varname','vartype')
+  rtrn[[2]] <- df_var_type2
+  }
+  
+  return(rtrn)
 }
 
 
@@ -92,7 +109,7 @@ graf_univ_fct <- function(data) {
 
 graf_bi_splom <- function(data){
   ggpairs(data = data,
-          title="Precio Autos '85 vs Características Mecánicas", 
+          title="Describe yout data", 
           upper = list(contious='smooth_loess'),
           diag=list(continuous='densityDiag'), axisLabels='none',
           progress = FALSE, proportions = "auto")
@@ -130,12 +147,12 @@ imputar_valor_central <- function(data, colnames) {
   var_categoricas <- dplyr::select_if(data_columnas, is.character) %>% colnames()
   
   #Imputar
-  algas_data_imputacion_central <- data %>%
+  data_imputacion_central <- data %>%
     # variables numéricas (media)
     mutate_at( vars(var_numericas),
                funs(ifelse(is.na(.), median(., na.rm = T), .))) %>%
     # variables categóricas (moda)
     mutate_at(vars(var_categoricas),
               funs(as.ordered(ifelse(is.na(.), moda(.), as.character(.)))))
-  return(algas_data_imputacion_central)
+  return(data_imputacion_central)
 }

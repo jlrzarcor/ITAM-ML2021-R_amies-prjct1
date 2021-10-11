@@ -1,6 +1,6 @@
 # Data
 data/
-Cancelaciones_en_Hoteles/hotel_cr_train.Rds
+Cancelaciones_en_Hoteles/*.Rds
 
 # History files
 .Rhistory

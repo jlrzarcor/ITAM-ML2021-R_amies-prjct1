@@ -191,11 +191,11 @@ hotel_cr_train <- hotel_cr_train %>%
 **Imputaciones**
 ```{r}
 
-class(hotel_cr_train)
-col_valor_central <- c("country")
+#class(hotel_cr_train)
+#col_valor_central <- c("country")
 #imputacion por valor central
-hotel_cr_train <- imputar_valor_central(hotel_cr_train, col_valor_central)
-class(hotel_cr_train)
+#hotel_cr_train <- imputar_valor_central(hotel_cr_train, col_valor_central)
+#class(hotel_cr_train)
 
 ```
 **Transformaciones**
@@ -204,25 +204,24 @@ class(hotel_cr_train)
 
 # *******   Transform variables to factors   *******
 hotel_cr_train  <- hotel_cr_train %>% 
-  mutate_at(c(1:2, 5:25, 27, 29:30),list(as.factor))
+  mutate_at(c(1:2, 4:27, 29:30),list(as.factor))
 
 # *******   Transform variables to integers   *******
 hotel_cr_train  <- hotel_cr_train %>% 
-  mutate_at(c(3),list(as.numeric))
+  mutate_at(c(3, 28),list(as.numeric))
 
 
 # *******   Variables to remove: year    *******
 # Se considera irrelevante el año pues los datos de prueba corresponden a 2017 y entrenamiento a 2014-2016
-hotel_cr_train <- hotel_cr_train %>% select(-4)
+#hotel_cr_train <- hotel_cr_train %>% select(-4)
 
 glimpse(hotel_cr_train)
 ```
 
 ### $$$$$$$$$$$$$$$$$$$$$$$$ begin
 
+### Cleaning Test
 
-
-### Cleaning Train
 
 ```{r}
 
@@ -322,11 +321,11 @@ hotel_cr_test <- hotel_cr_test %>%
 **Imputaciones**
 ```{r}
 
-class(hotel_cr_test)
-col_valor_central <- c("country")
+#class(hotel_cr_test)
+#col_valor_central <- c("country")
 #imputacion por valor central
-hotel_cr_test <- imputar_valor_central(hotel_cr_test, col_valor_central)
-class(hotel_cr_test)
+#hotel_cr_test <- imputar_valor_central(hotel_cr_test, col_valor_central)
+#class(hotel_cr_test)
 
 ```
 **Transformaciones**
@@ -335,16 +334,16 @@ class(hotel_cr_test)
 
 # *******   Transform variables to factors   *******
 hotel_cr_test  <- hotel_cr_test %>% 
-  mutate_at(c(1:2, 5:25, 27, 29:30),list(as.factor))
+  mutate_at(c(1:2, 4:27, 29:30),list(as.factor))
 
 # *******   Transform variables to integers   *******
 hotel_cr_test  <- hotel_cr_test %>% 
-  mutate_at(c(3),list(as.numeric))
+  mutate_at(c(3, 28),list(as.numeric))
 
 
 # *******   Variables to remove: year    *******
 # Se considera irrelevante el año pues los datos de prueba corresponden a 2017 y entrenamiento a 2014-2016
-hotel_cr_test <- hotel_cr_test %>% select(-4)
+#hotel_cr_test <- hotel_cr_test %>% select(-4)
 
 glimpse(hotel_cr_test)
 ```
@@ -368,36 +367,17 @@ summary(hotel_cr_train)
 
 **Valores Faltantes**  
   * Variables Categóricas:  
-      -> "num_of_doors" 2NA's. Esta variable está relacionada con "body-style",
-      por lo que se validará si existe correlación y se imputara por similitud.
+      -> .
   * Variables Numéricas:  
-      -> "normalized_losses" 41NA's. Aprox. el 20 % de los valores de esta
-      variable no se tienen. Se buscará imputar, en función otras variables
-      numéricas. Si el EDA muestra que tiene una alta explicación de la
-      variable objetivo y no es posible imputarla, tendrá que realizarse una
-      paritición entre valores y NA's. Caso contrario, deberá descartarse
-      en el modelado.  
-      -> Las variables "bore" 4NA's, "stroke" 4NA's, "horsepower" 2NA's y
-      "peak-rpm" 2NA's correspondientes a 19,20,22,23 respectivamente, podrían
-      estar explicadas en el conjunto de variables 19-23 que describen ciertas
-      características mecánicas del auto, por lo que sería posible imputarlas.  
-      -> La **variable objetivo** (26), **"price"** contiene 4NA's, lo cual es
-      incongruente. Considero que imputar estar variable introduciría un sesgo
-      en el modelo por lo que la recomendación es descartar estos valores.  
+      -> .  
+      -> Las variables .  
+      -> La **variable objetivo** (26), **"is_canceled"** .  
       
 **Valores Invalidos**  
-  * Se observó que todos los datos están dentro de los rangos indicados en el
-  diccionario de la base de datos y que no existen incongruencias entre el tipo
-  de datos de la variable y los valores contenidos en cada celda (se ejecutó
-  problems a la base limpia arrojando 0 errores). No obstante, esto no
-  descarta que existan Outliers o de amplitud muy marcada.  
+  * Se observó que .  
   
 **Resumen 5 números variables numéricas**   
-Se observó que la mayoría de las variables están en una vecindad cercana para
-la media y la mediana, lo que indica que están centradas. En el EDA univariado
-deberá evaluarse esta situación y determinar los efectos de los outliers.  
-Las variables que presentan una lejanía entre media y mediana son horsepower
-y price (target), revisar con detenimiento en el EDA.  
+ * Se observó que .  
 
 Observemos que no se se presentan incongruencias entre variables y registros:  
 
@@ -414,10 +394,7 @@ aggr(hotel_cr_train, prop=FALSE, numbers=TRUE)
 matrixplot(hotel_cr_train)
 ```
 
-Es posible observar en los gráficos anteriores, que el grado de influencia de
-los "missing values" aparentemente (salvo lo ya mencionado para la variable
-normalized_losses) no tienen un nivel de interrelación importante, por lo que
-podemos proseguir con el EDA y psoteriormente podríamos imputarlos.  
+Comentar.  
 
 Observemos nuestros datos hasta este momento:  
 
@@ -462,8 +439,8 @@ que genera las gráficas.
   num_bin_his: número de buckets a construir para el histograma.
 
 ```{r}
-hotel_cr_train_coltype <- hotel_cr_train_get_coltypes(glimpse(hotel_cr_train))
-hotel_cr_train_coltype
+coltypes <- get_coltypes(glimpse(hotel_cr_train), glimpse(hotel_cr_test))
+coltypes
 ```
 
 
@@ -478,10 +455,10 @@ c('lead_time', 'days_in_waiting_list', 'adr')
 **Plots de todas las Variables Categóricas:**
 ```{r}
 a_univariate(df = hotel_cr_train,
-             c('hotel', 'is_canceled', 'arrival_date_year', 'arrival_date_month',
-               'arrival_date_week_number', 'arrival_date_day_of_month',
-               'stays_in_weekend_nights','stays_in_week_nights', 'adults', 'children',
-               'babies'),
+             c('hotel','is_canceled','arrival_date_year',
+               'arrival_date_month','arrival_date_week_number',
+               'arrival_date_day_of_month','stays_in_weekend_nights',
+               'stays_in_week_nights','adults','children','babies'),
              numvar_hist_box = 'hist', num_bin_his = 37)
 ```
 
@@ -497,7 +474,7 @@ a_univariate(df = hotel_cr_train,
 ```{r}
 
 a_univariate(df = hotel_cr_train,
-             c('deposit_type', 'agent', 'company',
+             c('deposit_type', 'agent', 'company', 'days_in_waiting_list',
                'customer_type', 'required_car_parking_spaces',
                'total_of_special_requests'),
              numvar_hist_box = 'hist', num_bin_his = 37)
@@ -508,28 +485,17 @@ a_univariate(df = hotel_cr_train,
 
 
 **Categóricas**
-  Existen 5 variables con 3 categorías o menos, por lo que es conveniente
-  analizarlas de forma conjunta.
-  La variable make presenta el mayor número de categorías una de las cuáles
-  tiene la mayor representación con amplia diferencia.
-  Engine_type es una variable que concentra en una categoría gran parte de los
-  datos.
-  La varibale número de cilindros está dominada por la categoría 4. Es
-  necesario entenderla de forma particular.
+  Comentar.
 
 **Plots de todas las Variables Numéricas:**
 ```{r}
 a_univariate(df = hotel_cr_train,
-             c('lead_time', 'days_in_waiting_list', 'adr'),
+             c('lead_time', 'adr'),
              numvar_hist_box = 'hist', num_bin_his = 37)
 ```
 
 **Numéricas**
-  La variable price se analizará de forma independiente.
-  Se observan diversas formas en las variables, algunas sesgadas y algunas
-  otras con algun grado de normalidad.
-  Compression_ratio presenta un conjunto de outliers muy marcado que deberá
-  analizarse con boxplot.
+  Comentar.
 
 ```{r}
 a_univariate(df = hotel_cr_train,
@@ -537,3 +503,6 @@ a_univariate(df = hotel_cr_train,
              numvar_hist_box = 'box', num_bin_his = 37)
 ```
 
+
+### Análisis particular de adr vs lead time (revisión de outliers)
+![](Cancelaciones_en_Hoteles/adr_vs_leadtime_outliers.png)

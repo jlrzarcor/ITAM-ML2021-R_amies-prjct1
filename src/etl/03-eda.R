@@ -6,7 +6,7 @@ a_univariate <- function(df = hotel_cr_train, var_cols = c('all'),
                          numvar_hist_box = 'hist', 
                          num_bin_his = 37){
   ## Discriminate numerical and categorical variables.
-  St1<- left_join(as_tibble(var_cols), hotel_cr_train_coltype,
+  St1<- left_join(as_tibble(var_cols), get_coltypes(df)[[1]],
                   by = c("value" = "varname")) 
   num_tag <- as.vector(St1 %>% filter(vartype == "numeric")) %>% pull(value)
   cat_tag <- as.vector(St1 %>% filter(vartype == "character" |
@@ -46,9 +46,9 @@ a_univariate <- function(df = hotel_cr_train, var_cols = c('all'),
 ## BIVARIATE. Selecting Plots
 
 
-b_bivar_splom<- function(df = autos85_data, var_cols = c('all')){
+b_bivar_splom<- function(df = hotel_cr_train, var_cols = c('all')){
   ## Discriminate numerical and categorical variables.
-  St1<- left_join(as_tibble(var_cols), hotel_cr_train_coltype,
+  St1<- left_join(as_tibble(var_cols), get_coltypes(df)[[1]],
                   by = c("value" = "varname")) 
   num_tag <- as.vector(St1 %>% filter(vartype == "numeric")) %>% pull(value)
   cat_tag <- as.vector(St1 %>% filter(vartype == "character" |
